@@ -4,7 +4,7 @@ We create a Scheduled Task Action that runs a powershell script line that modifi
 for reach network interface.
 Using the COM API, 
 #>
-$taskAction = New-ScheduledTaskAction -Execute "Powershell" -Argument "Set-ItemProperty -Path 'C:\Users\WAGLacruz\Documents\WindowsPowershell\ChangeConfigureMetered.ps1"
+$taskAction = New-ScheduledTaskAction -Execute "Powershell" -Argument "Set-ItemProperty -Path '.\ChangeConfigureMetered.ps1"
 Register-ScheduledTask -TaskName "RunConfigureMetered" -Action $taskAction
 
 # Register the task with COM API
