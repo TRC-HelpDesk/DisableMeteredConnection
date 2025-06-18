@@ -1,19 +1,17 @@
-<#
-Disable Metered Connection for the Network Interface
-We create a Scheduled Task Action that runs a powershell script line that modifies the registry key that configures Metered Connection
-for reach network interface.
-Using the COM API, 
-#>
-$taskAction = New-ScheduledTaskAction -Execute "Powershell" -Argument "Set-ItemProperty -Path '.\ChangeConfigureMetered.ps1"
-Register-ScheduledTask -TaskName "RunConfigureMetered" -Action $taskAction
+$adapters = Get-NetAdapter | Where-Object { $_.Name -like "*Ethernet*"}
 
-# Register the task with COM API
-$service = New-Object -ComObject 'Schedule.Service'
-$service.Connect()
+foreach ($adapter in $adapters){
+    $NIC_GUID = $adapter.InterfaceGUID
+    # This is the new registry path that Settings uses to determine Metered Connections per Network Interface
+    $RegistryPath = "HKLM:\\Software\Microsoft\DusmSvc\Profiles\$NIC_GUID\*"
+    if (Test-Path -Path $RegistryPath){
+        # If hte path exists make sure etherenet is set to Metered before switching
+        $UserCost = (Get-ItemProperty -Path $RegistryPath -Name UserCost).UserCost
+        if($UserCost -ne 0){
+            Write-Host "Switching from Metered to Non-Metered connection on this network interface"
+            Set-ItemProperty -Path $RegistryPath -Name UserCost -Value 0
+        }
+    }
+}
 
-$trusted = "NT SERVICE\TrustedInstaller"
-$folder = $service.GetFolder('\')
-$task = $folder.GetTask("RunConfigureMetered")
-$task.RunEx($null, 0, 0, $trusted)
-
-Unregister-ScheduledTask -Taskname "RunConfigureMetered" -Confirm:$false
+Restart-Service -Name DusmSvc -Force
